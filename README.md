@@ -12,3 +12,6 @@ https://www.tesla.com/ownersmanual/modely/ko_us/GUID-3598EF55-6B1D-462B-88D8-704
 카메라 기반 차량 후방 측면 영역 객체 검출
 OpenCV로 객체 추적 (KCF, CSRT 트래커)
 거리, 접근 속도 기반 위험도 시각화
+
+# 진행상황
+- [0814일 피드백진행](/feedback/0814.md)
