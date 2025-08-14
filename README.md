@@ -1,7 +1,8 @@
 사이드미러 카메라 기반 사각지대 객체 감지
 =======================================
 주제: 사이드미러 카메라 영상 분석을 통한 자율주행 사각지대 객체 감지 시스템
-
+<details><summary>8월13일</summary> 
+  
 ## 관련제품 (링크)
 https://www.tesla.com/ownersmanual/modely/ko_us/GUID-3598EF55-6B1D-462B-88D8-704DB0896DD1.html
 
@@ -13,6 +14,9 @@ https://www.tesla.com/ownersmanual/modely/ko_us/GUID-3598EF55-6B1D-462B-88D8-704
 OpenCV로 객체 추적 (KCF, CSRT 트래커)
 거리, 접근 속도 기반 위험도 시각화
 
+</details>
+<details><summary>8월14일</summary>
+ 
 # 진행상황
 - [0814일 피드백진행](/feedback/0814.md)
 
