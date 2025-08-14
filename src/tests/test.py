@@ -57,8 +57,12 @@ while True:
     cv2.putText(frame, 'Blind Spot Zone', (roi_top_left[0], roi_top_left[1] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
+    # 움직임이 감지되었을 경우 경고 텍스트 출력
+    if motion_detected:
+        cv2.putText(frame, 'Beware of blind spots!', (50, 50),
+                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
     # 화면 출력
-    cv2.imshow('Webcam with Blind Spot', frame)
+    cv2.imshow('Side mirror camera system', frame)
 
     # 'q' 누르면 종료
     if cv2.waitKey(1) & 0xFF == ord('q'):
