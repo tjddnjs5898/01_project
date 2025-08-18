@@ -72,6 +72,12 @@ while True:
         duration_text = f"Duration: {motion_duration:.1f} sec"
         cv2.putText(frame, duration_text, (50, 90),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0,255,0), 2)
+        
+        # 3초 이상 머물면 추가 경고 문구 출력
+        if motion_duration >= 1.5:
+            cv2.putText(frame, 'Be careful!', (50, 130),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+
 
     cv2.imshow('Side mirror camera system', frame)
 
