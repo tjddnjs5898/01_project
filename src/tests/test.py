@@ -71,7 +71,7 @@ while True:
 
         duration_text = f"Duration: {motion_duration:.1f} sec"
         cv2.putText(frame, duration_text, (50, 90),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0,255,0), 2)
 
     cv2.imshow('Side mirror camera system', frame)
 
