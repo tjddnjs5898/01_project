@@ -60,7 +60,7 @@ OpenCV로 객체 추적 (KCF, CSRT 트래커)
 - 물체가 사라지면 "안전" 표시
 
 </details>
-<details><summary>8월18일</summary>
+<details><summary>8월19일</summary>
 
 # 진행상황
 
