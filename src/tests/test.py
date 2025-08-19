@@ -13,10 +13,16 @@ if not cap.isOpened():
     print("영상 열기 실패")
     exit()
 
-# 상태 변수 초기화
-motion_detected = False
-motion_start_time = None
-motion_duration = 0
+# ROI 설정 (사각지대 영역 비율)
+roi_ratio = {
+    "x1": 0.75,
+    "y1": 0.4,
+    "x2": 0.98,
+    "y2": 0.95
+}
+
+vehicle_times = {}      # 차량 시간 추적: key=center, value={'start_time':..., 'counted':...}
+danger_count = 0
 
 while True:
     ret, frame = cap.read()
@@ -25,13 +31,12 @@ while True:
         break
 
     height, width, _ = frame.shape
-
-    # 사각지대 ROI (우측 하단 기준)
-    roi_top_left = (int(width * 0.75), int(height * 0.4))
-    roi_bottom_right = (int(width * 0.98), int(height * 0.95))
+    roi_top_left = (int(width * roi_ratio["x1"]), int(height * roi_ratio["y1"]))
+    roi_bottom_right = (int(width * roi_ratio["x2"]), int(height * roi_ratio["y2"]))
 
     results = model(frame, verbose=False)[0]
-    current_motion = False
+    current_time = time.time()
+    vehicles_in_roi = []
 
     for box in results.boxes:
         cls_id = int(box.cls[0])
@@ -39,45 +44,53 @@ while True:
 
         if cls_id in [2, 3, 5, 7] and conf > 0.3:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
+            area = (x2 - x1) * (y2 - y1)
+            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+            center_key = (round(cx, -1), round(cy, -1))
 
-            # 차량이 ROI 안에 있는지 확인
-            cx = (x1 + x2) // 2
-            cy = (y1 + y2) // 2
+            in_roi = (roi_top_left[0] <= cx <= roi_bottom_right[0] and
+                      roi_top_left[1] <= cy <= roi_bottom_right[1])
 
-            if roi_top_left[0] <= cx <= roi_bottom_right[0] and roi_top_left[1] <= cy <= roi_bottom_right[1]:
-                current_motion = True
-                # 감지된 차량 박스
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 4)
-                cv2.putText(frame, f"Vehicle ({conf:.2f})", (x1, y1 - 20),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.8, (0, 0, 255), 4)
+            if in_roi:
+                if center_key not in vehicle_times:
+                    vehicle_times[center_key] = {'start_time': current_time, 'counted': False}
+                duration = current_time - vehicle_times[center_key]['start_time']
+                vehicles_in_roi.append(center_key)
 
-    # 시간 측정 로직
-    if current_motion:
-        if not motion_detected:
-            motion_start_time = time.time()
-        motion_detected = True
-        motion_duration = time.time() - motion_start_time
-    else:
-        motion_detected = False
-        motion_start_time = None
-        motion_duration = 0
+                # 경고 기준 시간: 1초
+                if duration >= 1 and not vehicle_times[center_key]['counted']:
+                    danger_count += 1
+                    vehicle_times[center_key]['counted'] = True
 
-    # 경고 메시지
-    if motion_detected:
-        cv2.putText(frame, f"Time in blind spot: {motion_duration:.1f} sec", (50, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.8, (255, 255, 0), 4)
+                # 경고 표시
+                if duration >= 1:
+                    color = (0, 0, 255)
+                    thickness = 5
+                    label = "VERY CLOSE!" if area >= 10000 else "WARNING!"
+                else:
+                    color = (0, 165, 255)
+                    thickness = 3
+                    label = f"{duration:.1f}s in ROI"
 
-        if motion_duration >= 3:
-            cv2.putText(frame, "Be careful!", (50, 160),
-                        cv2.FONT_HERSHEY_SIMPLEX, 2.5, (0, 0, 255), 5)
-        else:
-            cv2.putText(frame, "Be careful!", (50, 160),
-                        cv2.FONT_HERSHEY_SIMPLEX, 2.2, (0, 165, 255), 4)
-    else:
-        cv2.putText(frame, "safe", (50, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 2.2, (0, 255, 0), 5)
+            else:
+                if center_key in vehicle_times:
+                    del vehicle_times[center_key]
+                label = f"Vehicle {conf:.2f}"
+                color = (255, 255, 0)
+                thickness = 2
 
-    # 프레임 크기 조정 및 출력
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
+            cv2.putText(frame, label, (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.5, color, 3)
+
+    # ROI 안에 더 이상 없는 차량 제거
+    vehicle_times = {k: v for k, v in vehicle_times.items() if k in vehicles_in_roi}
+
+    # 위험 횟수 출력
+    cv2.putText(frame, f"Danger Count: {danger_count}", (50, 80),
+                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 0, 255), 5)
+
+    # 출력
     frame_resized = cv2.resize(frame, (1280, 720))
     cv2.imshow("YOLO Blind Spot Detection", frame_resized)
 
