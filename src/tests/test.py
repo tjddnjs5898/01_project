@@ -47,9 +47,9 @@ while True:
             if roi_top_left[0] <= cx <= roi_bottom_right[0] and roi_top_left[1] <= cy <= roi_bottom_right[1]:
                 current_motion = True
                 # 감지된 차량 박스
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                cv2.putText(frame, f"Vehicle ({conf:.2f})", (x1, y1 - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 4)
+                cv2.putText(frame, f"Vehicle ({conf:.2f})", (x1, y1 - 20),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.8, (0, 0, 255), 4)
 
     # 시간 측정 로직
     if current_motion:
@@ -64,21 +64,21 @@ while True:
 
     # 경고 메시지
     if motion_detected:
-        cv2.putText(frame, f"⏱ Time in blind spot: {motion_duration:.1f} sec", (50, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
+        cv2.putText(frame, f"Time in blind spot: {motion_duration:.1f} sec", (50, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.8, (255, 255, 0), 4)
 
         if motion_duration >= 3:
-            cv2.putText(frame, "Beware of vehicles!", (50, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+            cv2.putText(frame, "Be careful!", (50, 160),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2.5, (0, 0, 255), 5)
         else:
-            cv2.putText(frame, "Be careful!", (50, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 165, 255), 2)
+            cv2.putText(frame, "Be careful!", (50, 160),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2.2, (0, 165, 255), 4)
     else:
-        cv2.putText(frame, "safe", (50, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+        cv2.putText(frame, "safe", (50, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2.2, (0, 255, 0), 5)
 
     # 프레임 크기 조정 및 출력
-    frame_resized = cv2.resize(frame, (960, 540))
+    frame_resized = cv2.resize(frame, (1280, 720))
     cv2.imshow("YOLO Blind Spot Detection", frame_resized)
 
     if cv2.waitKey(30) & 0xFF == ord('q'):
