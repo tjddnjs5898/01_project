@@ -1,16 +1,18 @@
 import cv2
 import time
+from ultralytics import YOLO
 
-# 웹캠 연결
-cap = cv2.VideoCapture(0)
+# YOLO 모델 로드
+model = YOLO("yolov8n.pt")
+
+# 영상 파일 경로
+video_path = r'../../img/car.mov'
+cap = cv2.VideoCapture(video_path)
 
 if not cap.isOpened():
-    print("❌ 웹캠을 열 수 없습니다.")
+    print("영상 열기 실패")
     exit()
 
-print("✅ 웹캠 연결 성공")
-
-prev_gray = None
 motion_detected = False
 motion_start_time = None
 motion_duration = 0
@@ -18,36 +20,27 @@ motion_duration = 0
 while True:
     ret, frame = cap.read()
     if not ret:
-        print("❌ 프레임 읽기 실패")
+        print("영상 종료")
         break
 
-    height, width, _ = frame.shape
+    results = model(frame, verbose=False)[0]
+    current_motion = False
 
-    # 사각지대 영역 설정
-    roi_top_left = (int(width * 0.75), int(height * 0.4))      
-    roi_bottom_right = (int(width * 0.98), int(height * 0.95))  
+    for box in results.boxes:
+        cls_id = int(box.cls[0])
+        conf = float(box.conf[0])
 
-    roi_frame = frame[roi_top_left[1]:roi_bottom_right[1], roi_top_left[0]:roi_bottom_right[0]]
-
-    gray = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (21, 21), 0)
-
-    current_motion = False  # 프레임마다 감지 상태 초기화
-
-    if prev_gray is not None:
-        frame_diff = cv2.absdiff(prev_gray, gray)
-        _, thresh = cv2.threshold(frame_diff, 25, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        for contour in contours:
-            if cv2.contourArea(contour) < 300:
-                continue
+        # 차량 클래스만 감지 (car, motorbike, bus, truck)
+        if cls_id in [2, 3, 5, 7] and conf > 0.3:
             current_motion = True
-            break
 
-    prev_gray = gray.copy()
+            # 감지된 차량에 사각형 그리기
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+            cv2.putText(frame, f"Vehicle ({conf:.2f})", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-    # 시간 측정 로직
+    # 감지 시간 로직
     if current_motion:
         if not motion_detected:
             motion_start_time = time.time()
@@ -58,18 +51,11 @@ while True:
         motion_start_time = None
         motion_duration = 0
 
-    # ROI 표시
-    cv2.rectangle(frame, roi_top_left, roi_bottom_right, (0, 0, 255), 2)
-    cv2.putText(frame, 'Blind Spot Zone', (roi_top_left[0], roi_top_left[1] - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-
-    # 메시지 출력
+    # 경고 메시지 출력
     if motion_detected:
-        cv2.putText(frame, 'Beware of blind spots!', (50, 50),
+        cv2.putText(frame, 'Beware of vehicles!', (50, 50),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
-
-        duration_text = f"Duration: {motion_duration:.1f} sec"
-        cv2.putText(frame, duration_text, (50, 90),
+        cv2.putText(frame, f'Duration: {motion_duration:.1f} sec', (50, 90),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
         if motion_duration >= 1.5:
@@ -79,10 +65,10 @@ while True:
         cv2.putText(frame, 'Safe', (50, 50),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
 
-    # 항상 한 번만 호출
-    cv2.imshow('Side mirror camera system', frame)
+    frame_resized = cv2.resize(frame, (960, 540))
+    cv2.imshow("YOLO Vehicle Detection (Dynamic Boxes)", frame_resized)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(30) & 0xFF == ord('q'):
         break
 
 cap.release()
